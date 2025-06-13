@@ -274,7 +274,7 @@ export function DrivingProvider({ children }) {
             drives: state.drives,
             streaks: state.streaks,
             settings: state.settings,
-            version: '1.0.0',
+            version: '1.0.1',
           };
           await saveData(dataToSave);
           logger.debug('Data saved successfully', 'DRIVING_CONTEXT');

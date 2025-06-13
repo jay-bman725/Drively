@@ -2,7 +2,7 @@
   "expo": {
     "name": "Drively",
     "slug": "Drively",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -12,23 +12,37 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
+    "plugins": [
+      "expo-location",
+      "expo-print",
+      "expo-document-picker",
+      "expo-file-system",
+      "expo-sharing",
+      "expo-system-ui"
+    ],
     "extra": {
       "eas": {
-        "projectId": "70bbb8f4-53eb-471d-be14-410057950d10"
+        "projectId": "4f816e27-7689-4834-b488-f0d806626614"
       }
+    },
+    "android": {
+      "package": "com.jaysapps.drively"
+    }
+  },
+  "android": {
+    "adaptiveIcon": {
+      "foregroundImage": "./assets/adaptive-icon.png",
+      "backgroundColor": "#ffffff"
+    },
+    "edgeToEdgeEnabled": true,
+    "package": "com.jaysapps.drively"
+  },
+  "web": {
+    "favicon": "./assets/favicon.png"
+  },
+  "extra": {
+    "eas": {
+      "projectId": "4f816e27-7689-4834-b488-f0d806626614"
     }
   }
 }
