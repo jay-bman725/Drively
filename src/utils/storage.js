@@ -1,4 +1,5 @@
 import * as FileSystem from 'expo-file-system';
+import { getAppVersion } from './appInfo';
 
 const DATA_DIR = `${FileSystem.documentDirectory}drively/`;
 const MAIN_DATA_FILE = `${DATA_DIR}data.json`;
@@ -31,7 +32,7 @@ const DEFAULT_DATA = {
     backupReminder: true,
     lastBackupDate: null,
   },
-  version: '1.1.0',
+  version: getAppVersion(),
 };
 
 /**

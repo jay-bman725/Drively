@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { loadData, saveData } from '../utils/storage';
 import { logger, logUserAction, logError } from '../utils/logger';
+import { getAppVersion } from '../utils/appInfo';
 import { 
   calculateCurrentStreak, 
   calculateLongestStreak,
@@ -294,7 +295,7 @@ export function DrivingProvider({ children }) {
             drives: state.drives,
             streaks: state.streaks,
             settings: state.settings,
-            version: '1.1.0',
+            version: getAppVersion(),
           };
           await saveData(dataToSave);
           

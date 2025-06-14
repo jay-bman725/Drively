@@ -14,6 +14,7 @@ import {
 import { useDriving } from '../contexts/DrivingContext';
 import { useTheme, THEME_MODES } from '../contexts/ThemeContext';
 import { clearAllData } from '../utils/storage';
+import { getAppVersion } from '../utils/appInfo';
 import { 
   getLogStats, 
   clearLogs, 
@@ -352,7 +353,7 @@ export default function SettingsScreen({ navigation }) {
       items: [
         {
           title: 'App Version',
-          value: '1.1.0',
+          value: getAppVersion(),
         },
         {
           title: 'Data Storage',
