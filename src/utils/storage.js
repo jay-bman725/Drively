@@ -31,7 +31,7 @@ const DEFAULT_DATA = {
     backupReminder: true,
     lastBackupDate: null,
   },
-  version: '1.0.1',
+  version: '1.1.0',
 };
 
 /**

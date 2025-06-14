@@ -352,7 +352,7 @@ export default function SettingsScreen({ navigation }) {
       items: [
         {
           title: 'App Version',
-          value: '1.0.1',
+          value: '1.1.0',
         },
         {
           title: 'Data Storage',
