@@ -1,9 +1,12 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text as RNText, TouchableOpacity, StyleSheet } from 'react-native';
+import { Button as PaperButton, Card as PaperCard, Text as PaperText, Badge as PaperBadge, ProgressBar as PaperProgressBar } from 'react-native-paper';
+import Animated from 'react-native-reanimated';
 import { useTheme } from '../contexts/ThemeContext';
 
 /**
  * Modern Button Component with multiple variants
+ * Uses React Native Paper Button component underneath
  */
 export const Button = ({ 
   title, 
@@ -13,115 +16,113 @@ export const Button = ({
   disabled = false,
   icon,
   style,
+  children,
   ...props 
 }) => {
   const { theme } = useTheme();
-  
-  const getButtonStyle = () => {
-    const baseStyle = {
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: theme.borderRadius.md,
-      flexDirection: 'row',
-      gap: theme.spacing.sm,
-    };
 
-    // Size variants
-    const sizeStyles = {
-      sm: { paddingVertical: theme.spacing.sm, paddingHorizontal: theme.spacing.lg },
-      md: { paddingVertical: theme.spacing.lg, paddingHorizontal: theme.spacing.xl },
-      lg: { paddingVertical: theme.spacing.xl, paddingHorizontal: theme.spacing.xxl },
-    };
-
-    // Color variants
-    const variantStyles = {
-      primary: {
-        backgroundColor: disabled ? theme.colors.gray[400] : theme.colors.primary,
-        ...theme.shadows.colored(theme.colors.primary),
-      },
-      secondary: {
-        backgroundColor: disabled ? theme.colors.gray[300] : theme.colors.surface,
-        borderWidth: 1,
-        borderColor: disabled ? theme.colors.gray[300] : theme.colors.border.medium,
-        ...theme.shadows.md,
-      },
-      success: {
-        backgroundColor: disabled ? theme.colors.gray[400] : theme.colors.success,
-        ...theme.shadows.colored(theme.colors.success),
-      },
-      warning: {
-        backgroundColor: disabled ? theme.colors.gray[400] : theme.colors.warning,
-        ...theme.shadows.colored(theme.colors.warning),
-      },
-      danger: {
-        backgroundColor: disabled ? theme.colors.gray[400] : theme.colors.error,
-        ...theme.shadows.colored(theme.colors.error),
-      },
-    };
-
-    return [baseStyle, sizeStyles[size], variantStyles[variant]];
+  // Map our variant names to Paper's mode prop
+  const modeMap = {
+    primary: 'contained',
+    secondary: 'outlined',
+    tertiary: 'text',
+    success: 'contained',
+    warning: 'contained',
+    danger: 'contained',
   };
 
-  const getTextStyle = () => {
-    const baseTextStyle = {
-      fontWeight: theme.typography.weights.semibold,
-      letterSpacing: 0.5,
-    };
+  // Map our colors based on variant
+  const colorMap = {
+    primary: theme.colors.primary,
+    secondary: theme.colors.secondary,
+    tertiary: theme.colors.secondary,
+    success: theme.colors.success,
+    warning: theme.colors.warning,
+    danger: theme.colors.error,
+  };
 
-    const sizeTextStyles = {
-      sm: { fontSize: theme.typography.sizes.sm },
-      md: { fontSize: theme.typography.sizes.lg },
-      lg: { fontSize: theme.typography.sizes.xl },
-    };
-
-    const variantTextStyles = {
-      primary: { color: theme.colors.text.inverse },
-      secondary: { color: disabled ? theme.colors.gray[400] : theme.colors.text.primary },
-      success: { color: theme.colors.text.inverse },
-      warning: { color: theme.colors.text.inverse },
-      danger: { color: theme.colors.text.inverse },
-    };
-
-    return [baseTextStyle, sizeTextStyles[size], variantTextStyles[variant]];
+  // Map size to style adjustments
+  const sizeStyleMap = {
+    sm: { paddingHorizontal: theme.spacing.sm },
+    md: {}, // default
+    lg: { paddingHorizontal: theme.spacing.lg, height: 48 },
+  };
+  
+  const labelStyle = {
+    fontSize: size === 'sm' ? theme.typography.sizes.sm : 
+             size === 'lg' ? theme.typography.sizes.lg : 
+             theme.typography.sizes.base
   };
 
   return (
-    <TouchableOpacity
-      style={[getButtonStyle(), style]}
+    <PaperButton
+      mode={modeMap[variant] || 'contained'}
+      buttonColor={variant !== 'secondary' ? colorMap[variant] : undefined}
       onPress={onPress}
       disabled={disabled}
-      activeOpacity={0.8}
+      icon={icon}
+      style={[sizeStyleMap[size], style]}
+      labelStyle={labelStyle}
       {...props}
     >
-      {icon && icon}
-      <Text style={getTextStyle()}>{title}</Text>
-    </TouchableOpacity>
+      {title || children}
+    </PaperButton>
   );
 };
 
 /**
- * Modern Card Component
+ * Modern Card Component based on React Native Paper
  */
-export const Card = ({ children, style, padding = 'lg', ...props }) => {
-  const paddingStyles = {
-    none: {},
-    sm: { padding: spacing.lg },
-    md: { padding: spacing.xl },
-    lg: { padding: spacing.xxl },
-    xl: { padding: spacing.xxxl },
+export const Card = ({ 
+  children, 
+  style, 
+  padding = 'md', 
+  title, 
+  subtitle,
+  onPress,
+  elevation = 1,
+  ...props 
+}) => {
+  const { theme } = useTheme();
+  
+  const paddingMap = {
+    none: 0,
+    sm: theme.spacing.lg,
+    md: theme.spacing.xl,
+    lg: theme.spacing.xxl,
+    xl: theme.spacing.xxxl,
   };
 
+  const cardPadding = paddingMap[padding] || paddingMap.md;
+  
   return (
-    <View
-      style={[
-        styles.card,
-        paddingStyles[padding],
-        style
-      ]}
+    <PaperCard
+      style={[{
+        marginVertical: theme.spacing.md,
+        backgroundColor: theme.colors.surface,
+      }, style]}
+      elevation={elevation}
+      onPress={onPress}
       {...props}
     >
-      {children}
-    </View>
+      {(title || subtitle) && (
+        <PaperCard.Title
+          title={title}
+          subtitle={subtitle}
+          titleStyle={{
+            fontSize: theme.typography.sizes.lg,
+            fontWeight: theme.typography.weights.semibold,
+          }}
+          subtitleStyle={{
+            fontSize: theme.typography.sizes.sm,
+            color: theme.colors.text.secondary,
+          }}
+        />
+      )}
+      <PaperCard.Content style={{ padding: title ? 0 : cardPadding }}>
+        {children}
+      </PaperCard.Content>
+    </PaperCard>
   );
 };
 
@@ -130,41 +131,54 @@ export const Card = ({ children, style, padding = 'lg', ...props }) => {
  */
 export const ProgressBar = ({ 
   progress, 
-  color = colors.primary, 
-  backgroundColor = colors.gray[200],
+  color,
   height = 10,
   animated = true,
   style,
   ...props 
 }) => {
+  const { theme } = useTheme();
+  
   return (
-    <View 
-      style={[
-        {
-          height,
-          backgroundColor,
-          borderRadius: height / 2,
-          overflow: 'hidden',
-        },
-        style
-      ]}
+    <PaperProgressBar
+      progress={progress / 100}
+      color={color || theme.colors.primary}
+      style={[{
+        height,
+        borderRadius: height / 2,
+      }, style]}
       {...props}
-    >
-      <View
-        style={{
-          height: '100%',
-          width: `${Math.min(Math.max(progress, 0), 100)}%`,
-          backgroundColor: color,
-          borderRadius: height / 2,
-          ...shadows.colored(color, 0.3),
-        }}
-      />
-    </View>
+    />
   );
 };
 
 /**
- * Badge Component
+ * Text Component with theme support
+ */
+export const Text = ({
+  children,
+  style,
+  variant = 'bodyMedium',
+  color,
+  ...props
+}) => {
+  const { theme } = useTheme();
+  
+  const textColor = color || theme.colors.text.primary;
+  
+  return (
+    <PaperText
+      variant={variant}
+      style={[{ color: textColor }, style]}
+      {...props}
+    >
+      {children}
+    </PaperText>
+  );
+};
+
+/**
+ * Badge Component with theme support
  */
 export const Badge = ({ 
   text, 
@@ -173,65 +187,38 @@ export const Badge = ({
   style,
   ...props 
 }) => {
-  const sizeStyles = {
-    sm: { 
-      paddingHorizontal: spacing.sm, 
-      paddingVertical: spacing.xs,
-      borderRadius: borderRadius.sm,
-    },
-    md: { 
-      paddingHorizontal: spacing.md, 
-      paddingVertical: spacing.sm,
-      borderRadius: borderRadius.md,
-    },
-    lg: { 
-      paddingHorizontal: spacing.lg, 
-      paddingVertical: spacing.md,
-      borderRadius: borderRadius.lg,
-    },
+  const { theme } = useTheme();
+
+  const colorMap = {
+    primary: theme.colors.primary,
+    secondary: theme.colors.secondary,
+    success: theme.colors.success,
+    warning: theme.colors.warning,
+    danger: theme.colors.error,
+    light: theme.colors.gray[100],
   };
 
-  const variantStyles = {
-    primary: { backgroundColor: colors.primary },
-    secondary: { backgroundColor: colors.secondary },
-    success: { backgroundColor: colors.success },
-    warning: { backgroundColor: colors.warning },
-    danger: { backgroundColor: colors.error },
-    light: { backgroundColor: colors.gray[100] },
-  };
-
-  const textSizeStyles = {
-    sm: { fontSize: typography.sizes.xs },
-    md: { fontSize: typography.sizes.sm },
-    lg: { fontSize: typography.sizes.base },
-  };
-
-  const textColorStyles = {
-    primary: { color: colors.white },
-    secondary: { color: colors.white },
-    success: { color: colors.white },
-    warning: { color: colors.white },
-    danger: { color: colors.white },
-    light: { color: colors.text.primary },
+  // Size adjustments
+  const sizeMap = {
+    sm: { fontSize: theme.typography.sizes.xs },
+    md: { fontSize: theme.typography.sizes.sm },
+    lg: { fontSize: theme.typography.sizes.base },
   };
 
   return (
-    <View
+    <PaperBadge
       style={[
-        sizeStyles[size],
-        variantStyles[variant],
+        {
+          backgroundColor: colorMap[variant],
+        },
+        sizeMap[size],
         style
       ]}
+      size={size === 'lg' ? 25 : size === 'sm' ? 15 : 20}
       {...props}
     >
-      <Text style={[
-        textSizeStyles[size],
-        textColorStyles[variant],
-        { fontWeight: typography.weights.medium }
-      ]}>
-        {text}
-      </Text>
-    </View>
+      {text}
+    </PaperBadge>
   );
 };
 
@@ -245,14 +232,93 @@ export const SectionHeader = ({
   style,
   ...props 
 }) => {
+  const { theme } = useTheme();
+  
   return (
-    <View style={[styles.sectionHeader, style]} {...props}>
-      <View style={styles.sectionHeaderText}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {subtitle && <Text style={styles.sectionSubtitle}>{subtitle}</Text>}
+    <View style={[{
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.spacing.xl,
+    }, style]} {...props}>
+      <View style={{ flex: 1 }}>
+        <Text 
+          variant="titleLarge"
+          style={{
+            fontWeight: theme.typography.weights.bold,
+            letterSpacing: -0.3,
+            marginBottom: theme.spacing.xs,
+          }}
+        >
+          {title}
+        </Text>
+        
+        {subtitle && (
+          <Text 
+            variant="bodyMedium"
+            style={{
+              color: theme.colors.text.secondary,
+              fontWeight: theme.typography.weights.medium,
+            }}
+          >
+            {subtitle}
+          </Text>
+        )}
       </View>
       {action && action}
     </View>
+  );
+};
+
+/**
+ * Creates a fade-in animation using Reanimated
+ */
+export const FadeIn = ({ children, duration = 500, delay = 0, style, ...props }) => {
+  const { FadeIn } = Animated;
+  
+  return (
+    <Animated.View 
+      entering={FadeIn.duration(duration).delay(delay)} 
+      style={style} 
+      {...props}
+    >
+      {children}
+    </Animated.View>
+  );
+};
+
+/**
+ * Creates a slide-in animation using Reanimated
+ */
+export const SlideIn = ({ 
+  children, 
+  duration = 500, 
+  delay = 0, 
+  direction = 'left', 
+  style, 
+  ...props 
+}) => {
+  const { SlideInLeft, SlideInRight, SlideInUp, SlideInDown } = Animated;
+  
+  const getAnimation = () => {
+    switch (direction) {
+      case 'right': return SlideInRight;
+      case 'up': return SlideInUp;
+      case 'down': return SlideInDown;
+      default: return SlideInLeft;
+    }
+  };
+  
+  const Animation = getAnimation();
+  
+  return (
+    <Animated.View 
+      entering={Animation.duration(duration).delay(delay)} 
+      style={style} 
+      {...props}
+    >
+      {children}
+    </Animated.View>
   );
 };
 
@@ -293,4 +359,7 @@ export default {
   ProgressBar,
   Badge,
   SectionHeader,
+  Text,
+  FadeIn,
+  SlideIn,
 };

@@ -1,6 +1,300 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import Animated, { 
+  useAnimatedStyle, 
+  useSharedValue, 
+  withTiming, 
+  withSpring, 
+  withRepeat, 
+  withSequence,
+  FadeIn,
+  FadeOut,
+  SlideInLeft,
+  SlideInRight,
+  SlideInUp,
+  SlideInDown,
+  SlideOutLeft,
+  SlideOutRight,
+  SlideOutUp,
+  SlideOutDown,
+  StretchInX,
+  ZoomInEasyUp,
+  ZoomOutEasyDown
+} from 'react-native-reanimated';
 import { colors, spacing, borderRadius, typography, shadows } from '../utils/theme';
+
+/**
+ * Animated container with entrance and exit animations
+ */
+export const AnimatedContainer = ({ 
+  children, 
+  entering = 'fade', 
+  exiting = 'fade',
+  duration = 300,
+  delay = 0,
+  style,
+  ...props 
+}) => {
+  // Map entrance animation names to Reanimated animations
+  const getEnteringAnimation = () => {
+    switch (entering) {
+      case 'slideLeft': return SlideInLeft.duration(duration).delay(delay);
+      case 'slideRight': return SlideInRight.duration(duration).delay(delay);
+      case 'slideUp': return SlideInUp.duration(duration).delay(delay);
+      case 'slideDown': return SlideInDown.duration(duration).delay(delay);
+      case 'zoom': return ZoomInEasyUp.duration(duration).delay(delay);
+      case 'stretch': return StretchInX.duration(duration).delay(delay);
+      case 'fade':
+      default: return FadeIn.duration(duration).delay(delay);
+    }
+  };
+
+  // Map exit animation names to Reanimated animations
+  const getExitingAnimation = () => {
+    switch (exiting) {
+      case 'slideLeft': return SlideOutLeft.duration(duration);
+      case 'slideRight': return SlideOutRight.duration(duration);
+      case 'slideUp': return SlideOutUp.duration(duration);
+      case 'slideDown': return SlideOutDown.duration(duration);
+      case 'zoom': return ZoomOutEasyDown.duration(duration);
+      case 'fade':
+      default: return FadeOut.duration(duration);
+    }
+  };
+  
+  return (
+    <Animated.View 
+      entering={getEnteringAnimation()}
+      exiting={getExitingAnimation()}
+      style={style}
+      {...props}
+    >
+      {children}
+    </Animated.View>
+  );
+};
+
+/**
+ * Animated number that counts up or down
+ */
+export const AnimatedCounter = ({ 
+  value = 0, 
+  duration = 1000, 
+  formatter = (val) => Math.floor(val).toString(),
+  style,
+  ...props 
+}) => {
+  const animatedValue = useSharedValue(0);
+  const prevValue = useRef(0);
+
+  useEffect(() => {
+    // Save the previous value before animation
+    const from = prevValue.current;
+    // Set the target value
+    const to = value;
+    // Update the ref for next animation
+    prevValue.current = to;
+    
+    // Animate from previous value to new value
+    animatedValue.value = from;
+    animatedValue.value = withTiming(to, { duration });
+  }, [value, duration]);
+
+  // This will run on the UI thread for smoother animation
+  const text = useAnimatedStyle(() => {
+    return { text: formatter(animatedValue.value) };
+  });
+
+  return (
+    <Animated.Text style={[style]} animatedProps={text} {...props} />
+  );
+};
+
+/**
+ * Animated progress bar with smoother transitions
+ */
+export const AnimatedProgress = ({ 
+  progress = 0, 
+  duration = 1000, 
+  color = '#3b82f6',
+  backgroundColor = '#e2e8f0',
+  height = 8,
+  style,
+  ...props 
+}) => {
+  const width = useSharedValue(0);
+
+  useEffect(() => {
+    width.value = withTiming(progress / 100, { duration });
+  }, [progress]);
+
+  const progressStyle = useAnimatedStyle(() => {
+    return {
+      width: `${Math.min(Math.max(width.value * 100, 0), 100)}%`,
+    };
+  });
+
+  return (
+    <View 
+      style={[{
+        height,
+        backgroundColor,
+        borderRadius: height / 2,
+        overflow: 'hidden',
+      }, style]}
+      {...props}
+    >
+      <Animated.View
+        style={[{
+          height: '100%',
+          backgroundColor: color,
+          borderRadius: height / 2,
+        }, progressStyle]}
+      />
+    </View>
+  );
+};
+
+/**
+ * Animated badge with pulse effect
+ */
+export const PulseBadge = ({ 
+  value, 
+  color = '#3b82f6', 
+  size = 24, 
+  textColor = 'white',
+  style,
+  textStyle,
+  ...props 
+}) => {
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    // Create a pulsing effect when value changes
+    scale.value = withSequence(
+      withTiming(1.2, { duration: 200 }),
+      withTiming(1, { duration: 200 })
+    );
+  }, [value]);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }]
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: color,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }, animatedStyle, style]}
+      {...props}
+    >
+      <Animated.Text
+        style={[{
+          color: textColor,
+          fontSize: size * 0.5,
+          fontWeight: 'bold',
+        }, textStyle]}
+      >
+        {value}
+      </Animated.Text>
+    </Animated.View>
+  );
+};
+
+/**
+ * Animated button with press feedback
+ */
+export const PressableScale = ({ 
+  children, 
+  onPress, 
+  scaleTo = 0.95,
+  duration = 100,
+  style,
+  disabled = false,
+  ...props 
+}) => {
+  const scale = useSharedValue(1);
+
+  const handlePressIn = () => {
+    scale.value = withTiming(scaleTo, { duration });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withTiming(1, { duration });
+  };
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }]
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[animatedStyle, style]}
+      {...props}
+    >
+      <Animated.Pressable
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={disabled}
+        style={{ width: '100%', height: '100%' }}
+      >
+        {children}
+      </Animated.Pressable>
+    </Animated.View>
+  );
+};
+
+/**
+ * Shake animation for error feedback
+ */
+export const ShakeView = ({ 
+  children, 
+  shake = false,
+  duration = 300,
+  style,
+  ...props 
+}) => {
+  const translateX = useSharedValue(0);
+
+  useEffect(() => {
+    if (shake) {
+      translateX.value = withSequence(
+        withTiming(-10, { duration: 50 }),
+        withRepeat(
+          withTiming(10, { duration: duration / 6 }),
+          5,
+          true
+        ),
+        withTiming(0, { duration: 50 })
+      );
+    }
+  }, [shake]);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: translateX.value }]
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[animatedStyle, style]}
+      {...props}
+    >
+      {children}
+    </Animated.View>
+  );
+};
 
 /**
  * Enhanced Progress Ring Component with animation
@@ -417,6 +711,12 @@ const styles = StyleSheet.create({
 });
 
 export default {
+  AnimatedContainer,
+  AnimatedCounter,
+  AnimatedProgress,
+  PulseBadge,
+  PressableScale,
+  ShakeView,
   ProgressRing,
   StreakFlame,
   AchievementBadge,

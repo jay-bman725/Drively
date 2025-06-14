@@ -37,9 +37,6 @@ export default function SettingsScreen({ navigation }) {
   const [editingGoals, setEditingGoals] = useState(false);
   const [tempDayHours, setTempDayHours] = useState(user.goalDayHours.toString());
   const [tempNightHours, setTempNightHours] = useState(user.goalNightHours.toString());
-  const [editingNightTime, setEditingNightTime] = useState(false);
-  const [tempNightStart, setTempNightStart] = useState(settings.nightTimeStart);
-  const [tempNightEnd, setTempNightEnd] = useState(settings.nightTimeEnd);
   
   // Debug logging state
   const [logStats, setLogStats] = useState(null);
@@ -67,24 +64,6 @@ export default function SettingsScreen({ navigation }) {
     setEditingGoals(false);
     logUserAction('update_goals', 'SETTINGS', { dayHours, nightHours });
     Alert.alert('Goals Updated', 'Your driving goals have been updated.');
-  };
-
-  const handleSaveNightTime = () => {
-    // Basic time validation
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    
-    if (!timeRegex.test(tempNightStart) || !timeRegex.test(tempNightEnd)) {
-      Alert.alert('Invalid Time', 'Please use HH:MM format (e.g., 18:00).');
-      return;
-    }
-
-    updateSettings({
-      nightTimeStart: tempNightStart,
-      nightTimeEnd: tempNightEnd,
-    });
-    
-    setEditingNightTime(false);
-    Alert.alert('Night Hours Updated', 'Night driving hours have been updated.');
   };
 
   const handleResetData = () => {
@@ -229,17 +208,6 @@ export default function SettingsScreen({ navigation }) {
                     />
                   </View>
                   
-                  <View style={styles.goalInput}>
-                    <Text style={styles.inputLabel}>Night Hours:</Text>
-                    <TextInput
-                      style={styles.numberInput}
-                      value={tempNightHours}
-                      onChangeText={setTempNightHours}
-                      keyboardType="numeric"
-                      placeholder="10"
-                    />
-                  </View>
-                  
                   <TouchableOpacity
                     onPress={() => setEditingGoals(false)}
                     style={styles.cancelButton}
@@ -268,65 +236,7 @@ export default function SettingsScreen({ navigation }) {
       ],
     },
     {
-      title: 'Night Driving',
-      items: [
-        {
-          type: 'custom',
-          component: (
-            <View style={styles.nightTimeContainer}>
-              <View style={styles.settingHeader}>
-                <Text style={styles.settingTitle}>Night Hours Definition</Text>
-                <TouchableOpacity
-                  onPress={() => editingNightTime ? handleSaveNightTime() : setEditingNightTime(true)}
-                  style={styles.editButton}
-                >
-                  <Text style={styles.editButtonText}>
-                    {editingNightTime ? 'Save' : 'Edit'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              
-              {editingNightTime ? (
-                <View style={styles.editNightTimeContainer}>
-                  <View style={styles.timeInput}>
-                    <Text style={styles.inputLabel}>Night starts at:</Text>
-                    <TextInput
-                      style={styles.timeInputField}
-                      value={tempNightStart}
-                      onChangeText={setTempNightStart}
-                      placeholder="18:00"
-                    />
-                  </View>
-                  
-                  <View style={styles.timeInput}>
-                    <Text style={styles.inputLabel}>Night ends at:</Text>
-                    <TextInput
-                      style={styles.timeInputField}
-                      value={tempNightEnd}
-                      onChangeText={setTempNightEnd}
-                      placeholder="06:00"
-                    />
-                  </View>
-                  
-                  <TouchableOpacity
-                    onPress={() => setEditingNightTime(false)}
-                    style={styles.cancelButton}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <Text style={styles.nightTimeDisplay}>
-                  {settings.nightTimeStart} - {settings.nightTimeEnd}
-                </Text>
-              )}
-            </View>
-          ),
-        },
-      ],
-    },
-    {
-      title: 'Appearance',
+      title: 'Appearance & Units',
       items: [
         {
           type: 'custom',
@@ -355,6 +265,49 @@ export default function SettingsScreen({ navigation }) {
                     </Text>
                   </TouchableOpacity>
                 ))}
+              </View>
+            </View>
+          ),
+        },
+        {
+          type: 'custom',
+          component: (
+            <View style={styles.temperatureContainer}>
+              <Text style={[styles.settingTitle, { color: theme.colors.text.primary }]}>Temperature Unit</Text>
+              <Text style={[styles.settingSubtitle, { color: theme.colors.text.secondary }]}>Choose how to display temperature in weather data</Text>
+              <View style={styles.temperatureOptions}>
+                <TouchableOpacity
+                  style={[
+                    styles.temperatureOption,
+                    { backgroundColor: theme.colors.surfaceSecondary, borderColor: theme.colors.border.light },
+                    settings.temperatureUnit === 'metric' && { borderColor: theme.colors.primary, backgroundColor: theme.colors.primary + '10' }
+                  ]}
+                  onPress={() => updateSettings({ temperatureUnit: 'metric' })}
+                >
+                  <Text style={[
+                    styles.temperatureOptionText,
+                    { color: theme.colors.text.secondary },
+                    settings.temperatureUnit === 'metric' && { color: theme.colors.primary }
+                  ]}>
+                    🌡️ Celsius (20°C)
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.temperatureOption,
+                    { backgroundColor: theme.colors.surfaceSecondary, borderColor: theme.colors.border.light },
+                    settings.temperatureUnit === 'imperial' && { borderColor: theme.colors.primary, backgroundColor: theme.colors.primary + '10' }
+                  ]}
+                  onPress={() => updateSettings({ temperatureUnit: 'imperial' })}
+                >
+                  <Text style={[
+                    styles.temperatureOptionText,
+                    { color: theme.colors.text.secondary },
+                    settings.temperatureUnit === 'imperial' && { color: theme.colors.primary }
+                  ]}>
+                    🌡️ Fahrenheit (68°F)
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
           ),
@@ -703,27 +656,6 @@ const styles = StyleSheet.create({
     width: 80,
     textAlign: 'center',
   },
-  nightTimeContainer: {},
-  nightTimeDisplay: {
-    fontSize: 14,
-    color: '#374151',
-  },
-  editNightTimeContainer: {
-    gap: 12,
-  },
-  timeInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  timeInputField: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 6,
-    padding: 8,
-    width: 80,
-    textAlign: 'center',
-  },
   cancelButton: {
     backgroundColor: '#f3f4f6',
     paddingVertical: 8,
@@ -767,6 +699,29 @@ const styles = StyleSheet.create({
   themeOptionText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  // Temperature unit styles
+  temperatureContainer: {
+    gap: 12,
+  },
+  temperatureOptions: {
+    gap: 8,
+  },
+  temperatureOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    alignItems: 'center',
+  },
+  temperatureOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  settingSubtitle: {
+    fontSize: 13,
+    marginTop: -4,
+    marginBottom: 8,
   },
   // Reset button styles
   resetButton: {

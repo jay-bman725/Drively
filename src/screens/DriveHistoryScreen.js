@@ -63,11 +63,6 @@ export default function DriveHistoryScreen({ navigation }) {
     );
   };
 
-  const handleEditDrive = (drive) => {
-    // Navigate to edit screen (you can implement this later)
-    Alert.alert('Edit Drive', 'Edit functionality coming soon!');
-  };
-
   const renderDriveItem = ({ item: drive }) => (
     <View style={[styles.driveCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border.light }]}>
       <View style={styles.driveHeader}>
@@ -106,12 +101,6 @@ export default function DriveHistoryScreen({ navigation }) {
       )}
 
       <View style={styles.driveActions}>
-        <TouchableOpacity
-          style={[styles.editButton, { backgroundColor: theme.colors.surfaceSecondary, borderColor: theme.colors.border.light }]}
-          onPress={() => handleEditDrive(drive)}
-        >
-          <Text style={[styles.editButtonText, { color: theme.colors.text.primary }]}>Edit</Text>
-        </TouchableOpacity>
         <TouchableOpacity
           style={[styles.deleteButton, { backgroundColor: theme.colors.error + '20', borderColor: theme.colors.error }]}
           onPress={() => handleDeleteDrive(drive)}
@@ -450,26 +439,14 @@ const styles = StyleSheet.create({
   },
   driveActions: {
     flexDirection: 'row',
-    gap: 8,
-  },
-  editButton: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  editButtonText: {
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '500',
   },
   deleteButton: {
     flex: 1,
     backgroundColor: '#fef2f2',
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingVertical: 10,
+    borderRadius: 8,
     alignItems: 'center',
+    borderWidth: 1,
   },
   deleteButtonText: {
     fontSize: 14,

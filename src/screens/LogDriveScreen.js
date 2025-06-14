@@ -23,10 +23,12 @@ import {
   formatTimeForDisplay,
   formatDateForDisplay 
 } from '../utils/time';
+import { fetchWeatherData, autoSelectWeatherOption } from '../utils/weather';
 
 const WEATHER_OPTIONS = [
   '☀️ Clear',
-  '🌤️ Partly Cloudy',
+  '🌙 Clear Night', 
+  '⛅ Partly Cloudy',
   '☁️ Cloudy', 
   '🌧️ Rain',
   '🌨️ Snow',
@@ -152,7 +154,7 @@ export default function LogDriveScreen({ navigation }) {
       setLocation(locationResult);
       
       // Get weather data
-      await fetchWeatherData(locationResult.coords.latitude, locationResult.coords.longitude);
+      await fetchWeatherDataForLocation(locationResult.coords.latitude, locationResult.coords.longitude);
       
     } catch (error) {
       console.error('Error getting location:', error);
@@ -162,75 +164,55 @@ export default function LogDriveScreen({ navigation }) {
     }
   };
 
-  const fetchWeatherData = async (lat, lon) => {
+  const fetchWeatherDataForLocation = async (lat, lon) => {
     try {
       setLoadingWeather(true);
       
-      // Using a free weather API service
-      // Using wttr.in which provides weather data in JSON format
-      const response = await fetch(`https://wttr.in/${lat},${lon}?format=j1`);
+      // Get temperature unit from settings
+      const units = settings.temperatureUnit || 'metric';
       
-      if (response.ok) {
-        const data = await response.json();
-        const current = data.current_condition[0];
-        
-        const weatherData = {
-          main: current.weatherDesc[0].value,
-          description: current.weatherDesc[0].value.toLowerCase(),
-          temp: Math.round(current.temp_C),
-          humidity: current.humidity,
-          windSpeed: current.windspeedKmph,
-          visibility: current.visibility,
-        };
-        
-        setWeatherData(weatherData);
-        
-        // Auto-select weather option based on data
-        const description = current.weatherDesc[0].value.toLowerCase();
-        let selectedWeather = '☀️ Clear'; // default
-        
-        if (description.includes('clear') || description.includes('sunny')) {
-          selectedWeather = '☀️ Clear';
-        } else if (description.includes('partly cloudy') || description.includes('partly')) {
-          selectedWeather = '🌤️ Partly Cloudy';
-        } else if (description.includes('cloudy') || description.includes('overcast')) {
-          selectedWeather = '☁️ Cloudy';
-        } else if (description.includes('rain') || description.includes('drizzle')) {
-          selectedWeather = '🌧️ Rain';
-        } else if (description.includes('snow') || description.includes('blizzard')) {
-          selectedWeather = '🌨️ Snow';
-        } else if (description.includes('fog') || description.includes('mist')) {
-          selectedWeather = '🌫️ Fog';
-        } else if (description.includes('wind')) {
-          selectedWeather = '💨 Windy';
-        }
-        
-        setWeather(selectedWeather);
-      } else {
-        // Fallback to simulated data if API fails
-        console.log('Weather API failed, using fallback data');
-        const fallbackWeather = {
-          main: 'Clear',
-          description: 'clear sky',
-          temp: 20,
-          humidity: 50,
-        };
-        setWeatherData(fallbackWeather);
-        setWeather('☀️ Clear');
+      // Use the new weather API
+      const weatherInfo = await fetchWeatherData(lat, lon, units);
+      
+      setWeatherData(weatherInfo);
+      
+      // Auto-select weather option based on data
+      const selectedWeather = autoSelectWeatherOption(weatherInfo.description, weatherInfo.isNight);
+      setWeather(selectedWeather);
+      
+      if (weatherInfo.isFallback) {
+        Alert.alert(
+          'Weather Service Unavailable',
+          'Could not get current weather data. Please manually select the weather conditions.',
+          [{ text: 'OK' }]
+        );
       }
       
     } catch (error) {
       console.error('Error fetching weather:', error);
+      logError(error, 'WEATHER', 'Failed to fetch weather data');
       
-      // Fallback to reasonable defaults if weather fetch fails
+      // Set default fallback
+      const units = settings.temperatureUnit || 'metric';
+      const tempUnit = units === 'imperial' ? '°F' : '°C';
+      const fallbackTemp = units === 'imperial' ? '68' : '20';
+      
       const fallbackWeather = {
-        main: 'Unknown',
+        location: 'Unknown Location',
         description: 'weather data unavailable',
-        temp: 20,
-        humidity: 50,
+        temperature: `${fallbackTemp} ${tempUnit}`,
+        visibility: null,
+        isNight: false,
+        isFallback: true
       };
       setWeatherData(fallbackWeather);
       setWeather('☀️ Clear');
+      
+      Alert.alert(
+        'Weather Error',
+        'Unable to get weather data. Please manually select conditions.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setLoadingWeather(false);
     }
@@ -602,24 +584,27 @@ export default function LogDriveScreen({ navigation }) {
           {weatherData && (
             <View style={[styles.weatherDataContainer, { backgroundColor: theme.colors.surfaceSecondary, borderColor: theme.colors.border.light }]}>
               <Text style={[styles.weatherDataText, { color: theme.colors.primary }]}>
-                📍 Current conditions: {weatherData.description}
+                📍 {weatherData.location}
               </Text>
               <Text style={[styles.weatherDataText, { color: theme.colors.text.secondary }]}>
-                🌡️ Temperature: {weatherData.temp}°C
+                🌤️ {weatherData.description}
               </Text>
-              {weatherData.humidity && (
-                <Text style={[styles.weatherDataText, { color: theme.colors.text.secondary }]}>
-                  💧 Humidity: {weatherData.humidity}%
-                </Text>
-              )}
-              {weatherData.windSpeed && (
-                <Text style={[styles.weatherDataText, { color: theme.colors.text.secondary }]}>
-                  💨 Wind: {weatherData.windSpeed} km/h
-                </Text>
-              )}
+              <Text style={[styles.weatherDataText, { color: theme.colors.text.secondary }]}>
+                🌡️ Temperature: {weatherData.temperature}
+              </Text>
               {weatherData.visibility && (
                 <Text style={[styles.weatherDataText, { color: theme.colors.text.secondary }]}>
-                  👁️ Visibility: {weatherData.visibility} km
+                  �️ Visibility: {weatherData.visibility}
+                </Text>
+              )}
+              {weatherData.precipitationNextHour !== null && weatherData.precipitationNextHour > 0 && (
+                <Text style={[styles.weatherDataText, { color: theme.colors.text.secondary }]}>
+                  🌧️ Rain expected: {weatherData.precipitationNextHour}mm in next hour
+                </Text>
+              )}
+              {weatherData.isFallback && (
+                <Text style={[styles.weatherDataText, { color: theme.colors.warning }]}>
+                  ⚠️ Using fallback data - service unavailable
                 </Text>
               )}
             </View>
@@ -661,7 +646,7 @@ export default function LogDriveScreen({ navigation }) {
         style={[styles.refreshButton, { backgroundColor: theme.colors.gray[500] }]}
         onPress={() => {
           if (location) {
-            fetchWeatherData(location.coords.latitude, location.coords.longitude);
+            fetchWeatherDataForLocation(location.coords.latitude, location.coords.longitude);
           } else {
             requestLocationAndWeather();
           }

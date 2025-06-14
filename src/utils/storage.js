@@ -203,20 +203,3 @@ export async function clearAllData() {
     return false;
   }
 }
-
-// Background log cleanup function that runs every 2 days
-export async function scheduleLogCleanup() {
-  const CLEANUP_INTERVAL = 2 * 24 * 60 * 60 * 1000; // 2 days in milliseconds
-  
-  // Import logger functions inside the function to avoid circular dependencies
-  const { cleanupOldLogs, logger } = await import('./logger');
-  
-  setInterval(async () => {
-    try {
-      await cleanupOldLogs();
-      await logger.info('Automatic log cleanup completed', 'SYSTEM');
-    } catch (error) {
-      console.error('Failed to cleanup logs automatically:', error);
-    }
-  }, CLEANUP_INTERVAL);
-}

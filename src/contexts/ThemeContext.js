@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
-import * as SystemUI from 'expo-system-ui';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { lightTheme, darkTheme } from '../utils/theme';
 import { logUserAction, logger } from '../utils/logger';
@@ -24,6 +23,7 @@ const ThemeContext = createContext({
 /**
  * ThemeProvider manages theme state and persistence
  * Supports light, dark, and system theme modes
+ * Integrates with React Native Paper for material design
  */
 export function ThemeProvider({ children }) {
   const systemColorScheme = useColorScheme();
@@ -31,20 +31,16 @@ export function ThemeProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [systemTheme, setSystemTheme] = useState(null);
 
-  // Get system color scheme using expo-system-ui for better detection
+  // Get system color scheme using useColorScheme hook
   useEffect(() => {
     const getSystemTheme = async () => {
       try {
-        // expo-system-ui provides more reliable system theme detection
-        const rootViewBackgroundColor = await SystemUI.getRootViewBackgroundColor();
-        // On some devices, we can infer theme from background color
-        console.log('Root view background color:', rootViewBackgroundColor);
-        
-        // Use useColorScheme as primary source, but log for debugging
+        // Use useColorScheme as primary source (more reliable)
         console.log('useColorScheme result:', systemColorScheme);
         setSystemTheme(systemColorScheme);
       } catch (error) {
-        console.warn('Failed to get system UI info:', error);
+        console.warn('Failed to get system theme info:', error);
+        // Fallback to just using the system color scheme
         setSystemTheme(systemColorScheme);
       }
     };
@@ -144,6 +140,8 @@ export function ThemeProvider({ children }) {
     systemColorScheme, // Original useColorScheme result
     systemTheme, // Processed system theme
     effectiveSystemScheme, // The one actually being used
+    // Material design theme for React Native Paper
+    paperTheme: theme.materialTheme,
   };
 
   return (

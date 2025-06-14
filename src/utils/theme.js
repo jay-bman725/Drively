@@ -1,7 +1,9 @@
 /**
  * Theme configuration for consistent styling across the app
  * Supports both light and dark mode themes
+ * Integrates with React Native Paper for material design components
  */
+import { MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
 
 // Base color palette that works for both themes
 export const baseColors = {
@@ -237,6 +239,47 @@ export const darkShadows = {
   }),
 };
 
+// Create a custom MD3 theme based on our color palette
+const createCustomMD3Theme = (colors, isDark) => {
+  const baseMD3Theme = isDark ? MD3DarkTheme : MD3LightTheme;
+  
+  return {
+    ...baseMD3Theme,
+    colors: {
+      ...baseMD3Theme.colors,
+      primary: colors.primary,
+      onPrimary: colors.text.inverse,
+      primaryContainer: colors.primaryLight,
+      onPrimaryContainer: isDark ? colors.text.primary : colors.primaryDark,
+      secondary: colors.secondary,
+      onSecondary: colors.text.inverse,
+      secondaryContainer: colors.secondaryLight,
+      onSecondaryContainer: isDark ? colors.text.primary : colors.secondaryDark,
+      tertiary: colors.accent,
+      onTertiary: colors.text.inverse,
+      tertiaryContainer: colors.accentLight,
+      onTertiaryContainer: isDark ? colors.text.primary : colors.accentDark,
+      error: colors.error,
+      background: colors.background,
+      onBackground: colors.text.primary,
+      surface: colors.surface,
+      onSurface: colors.text.primary,
+      surfaceVariant: colors.surfaceSecondary,
+      onSurfaceVariant: colors.text.secondary,
+      outline: colors.border.medium,
+      elevation: {
+        level0: 'transparent',
+        level1: colors.surface,
+        level2: colors.surfaceSecondary,
+        level3: isDark ? colors.gray[700] : colors.gray[100],
+        level4: isDark ? colors.gray[600] : colors.gray[200],
+        level5: isDark ? colors.gray[500] : colors.gray[300],
+      }
+    },
+    roundness: borderRadius.md,
+  };
+};
+
 // Light theme
 export const lightTheme = {
   colors: lightColors,
@@ -244,6 +287,7 @@ export const lightTheme = {
   borderRadius,
   typography,
   shadows,
+  materialTheme: createCustomMD3Theme(lightColors, false),
 };
 
 // Dark theme
@@ -253,6 +297,7 @@ export const darkTheme = {
   borderRadius,
   typography,
   shadows: darkShadows,
+  materialTheme: createCustomMD3Theme(darkColors, true),
 };
 
 // Default theme (light) for backward compatibility

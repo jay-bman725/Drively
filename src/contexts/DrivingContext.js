@@ -49,6 +49,7 @@ const initialState = {
     nightTimeEnd: '06:00',
     backupReminder: true,
     lastBackupDate: null,
+    temperatureUnit: 'metric', // 'metric' or 'imperial'
   },
   loading: true,
   error: null,
@@ -237,12 +238,23 @@ export function DrivingProvider({ children }) {
   useEffect(() => {
     async function initializeData() {
       try {
-        logger.info('Loading app data', 'DRIVING_CONTEXT');
+        // Add safety check for logger
+        if (logger && logger.info) {
+          await logger.info('Loading app data', 'DRIVING_CONTEXT');
+        } else {
+          console.log('Loading app data (logger not ready)');
+        }
+        
         const data = await loadData();
         
         // Check if we need to reset monthly freeze counter
         if (shouldResetMonthlyFreezeCounter(data.streaks?.lastFreezeReset)) {
-          logger.info('Resetting monthly freeze counter', 'DRIVING_CONTEXT');
+          if (logger && logger.info) {
+            await logger.info('Resetting monthly freeze counter', 'DRIVING_CONTEXT');
+          } else {
+            console.log('Resetting monthly freeze counter');
+          }
+          
           data.streaks = {
             ...data.streaks,
             freezeDaysThisMonth: 0,
@@ -252,7 +264,15 @@ export function DrivingProvider({ children }) {
         
         dispatch({ type: ACTIONS.LOAD_DATA, payload: data });
       } catch (error) {
-        logError(error, 'DRIVING_CONTEXT', 'Failed to load data on app startup');
+        // Safe error logging
+        if (logError) {
+          try {
+            await logError(error, 'DRIVING_CONTEXT', 'Failed to load data on app startup');
+          } catch (logErr) {
+            console.error('Failed to log error:', logErr);
+          }
+        }
+        
         console.error('Failed to load data:', error);
         dispatch({ 
           type: ACTIONS.LOAD_DATA, 
@@ -277,9 +297,20 @@ export function DrivingProvider({ children }) {
             version: '1.0.1',
           };
           await saveData(dataToSave);
-          logger.debug('Data saved successfully', 'DRIVING_CONTEXT');
+          
+          // Safe logger usage
+          if (logger && logger.debug) {
+            await logger.debug('Data saved successfully', 'DRIVING_CONTEXT');
+          }
         } catch (error) {
-          logError(error, 'DRIVING_CONTEXT', 'Failed to save data automatically');
+          // Safe error logging
+          if (logError) {
+            try {
+              await logError(error, 'DRIVING_CONTEXT', 'Failed to save data automatically');
+            } catch (logErr) {
+              console.error('Failed to log save error:', logErr);
+            }
+          }
           console.error('Failed to save data:', error);
         }
       };

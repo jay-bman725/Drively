@@ -61,13 +61,14 @@ const GOAL_PRESETS = [
 ];
 
 export default function OnboardingScreen({ navigation }) {
-  const { setUserInfo, completeOnboarding } = useDriving();
+  const { setUserInfo, completeOnboarding, updateSettings } = useDriving();
   const { theme } = useTheme();
   const [step, setStep] = useState(1);
   const [licenseType, setLicenseType] = useState(null);
   const [customGoal, setCustomGoal] = useState(false);
   const [dayHours, setDayHours] = useState(40);
   const [nightHours, setNightHours] = useState(10);
+  const [temperatureUnit, setTemperatureUnit] = useState('metric');
   const [hasAgreed, setHasAgreed] = useState(false);
 
   const handleLicenseSelection = (type) => {
@@ -121,6 +122,10 @@ export default function OnboardingScreen({ navigation }) {
     };
 
     setUserInfo(userInfo);
+    
+    // Set temperature unit preference
+    updateSettings({ temperatureUnit });
+    
     completeOnboarding();
     // Navigation will happen automatically when onboardingComplete becomes true
   };
@@ -231,12 +236,84 @@ export default function OnboardingScreen({ navigation }) {
 
   const renderStep3 = () => (
     <View style={styles.stepContainer}>
+      <Text style={[styles.stepTitle, { color: theme.colors.text.primary }]}>Temperature Preference</Text>
+      <Text style={[styles.stepSubtitle, { color: theme.colors.text.secondary }]}>
+        Choose how you'd like to see temperature in weather data.
+      </Text>
+
+      <View style={styles.optionsContainer}>
+        <TouchableOpacity
+          style={[
+            styles.optionCard,
+            { backgroundColor: theme.colors.surface, borderColor: theme.colors.border.light },
+            temperatureUnit === 'metric' && [styles.selectedOption, { 
+              borderColor: theme.colors.primary, 
+              backgroundColor: theme.colors.primary + '10' 
+            }],
+          ]}
+          onPress={() => setTemperatureUnit('metric')}
+        >
+          <Text style={styles.optionIcon}>🌡️</Text>
+          <View style={styles.optionContent}>
+            <Text style={[styles.optionTitle, { color: theme.colors.text.primary }]}>Celsius</Text>
+            <Text style={[styles.optionDescription, { color: theme.colors.text.secondary }]}>
+              Example: 20°C
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.optionCard,
+            { backgroundColor: theme.colors.surface, borderColor: theme.colors.border.light },
+            temperatureUnit === 'imperial' && [styles.selectedOption, { 
+              borderColor: theme.colors.primary, 
+              backgroundColor: theme.colors.primary + '10' 
+            }],
+          ]}
+          onPress={() => setTemperatureUnit('imperial')}
+        >
+          <Text style={styles.optionIcon}>🌡️</Text>
+          <View style={styles.optionContent}>
+            <Text style={[styles.optionTitle, { color: theme.colors.text.primary }]}>Fahrenheit</Text>
+            <Text style={[styles.optionDescription, { color: theme.colors.text.secondary }]}>
+              Example: 68°F
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.buttonRow}>
+        <TouchableOpacity
+          style={[styles.backButton, { borderColor: theme.colors.border.medium }]}
+          onPress={() => setStep(2)}
+        >
+          <Text style={[styles.backButtonText, { color: theme.colors.text.secondary }]}>Back</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.nextButton, { backgroundColor: theme.colors.primary }]}
+          onPress={() => setStep(4)}
+        >
+          <Text style={[styles.nextButtonText, { color: theme.colors.text.inverse }]}>Next</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderStep4 = () => (
+    <View style={styles.stepContainer}>
       <Text style={[styles.stepTitle, { color: theme.colors.text.primary }]}>Important Notice</Text>
       
       <View style={[styles.noticeContainer, { backgroundColor: theme.colors.surface }]}>
         <Text style={[styles.noticeText, { color: theme.colors.text.primary }]}>
           <Text style={[styles.boldText, { color: theme.colors.text.primary }]}>Data Storage:</Text> This app stores all your driving log data locally on your device. 
           Your data is never sent to the cloud or shared with third parties.
+        </Text>
+        
+        <Text style={[styles.noticeText, { color: theme.colors.text.primary }]}>
+          <Text style={[styles.boldText, { color: theme.colors.text.primary }]}>Location & Weather:</Text> Your location coordinates WILL be sent to our server 
+          to fetch weather data for your drives. However, this location data is never stored and is instantly deleted from server records.
         </Text>
         
         <Text style={[styles.noticeText, { color: theme.colors.text.primary }]}>
@@ -269,7 +346,7 @@ export default function OnboardingScreen({ navigation }) {
       <View style={styles.buttonRow}>
         <TouchableOpacity
           style={[styles.backButton, { borderColor: theme.colors.border.medium }]}
-          onPress={() => setStep(2)}
+          onPress={() => setStep(3)}
         >
           <Text style={[styles.backButtonText, { color: theme.colors.text.secondary }]}>Back</Text>
         </TouchableOpacity>
@@ -297,7 +374,7 @@ export default function OnboardingScreen({ navigation }) {
           <Text style={[styles.subtitle, { color: theme.colors.text.secondary }]}>Your driving companion</Text>
           
           <View style={styles.progressContainer}>
-            {[1, 2, 3].map((num) => (
+            {[1, 2, 3, 4].map((num) => (
               <View
                 key={num}
                 style={[
@@ -313,6 +390,7 @@ export default function OnboardingScreen({ navigation }) {
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}
         {step === 3 && renderStep3()}
+        {step === 4 && renderStep4()}
       </ScrollView>
     </SafeAreaView>
   );
@@ -391,15 +469,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 3,
-    transform: [{ scale: 1 }],
   },
   selectedOption: {
-    shadowColor: '#3b82f6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
-    transform: [{ scale: 1.02 }],
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   optionIcon: {
     fontSize: 40,
@@ -526,5 +602,21 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 17,
     fontWeight: '600',
+  },
+  nextButton: {
+    paddingVertical: 18,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    alignItems: 'center',
+    flex: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  nextButtonText: {
+    fontSize: 17,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
 });

@@ -21,13 +21,30 @@ export const LOG_LEVELS = {
  */
 export async function initializeLogger() {
   try {
-    await ensureLogsDirectoryExists();
-    await cleanupOldLogs();
-    
-    // Log app startup
-    await log('Logger initialized', LOG_LEVELS.INFO, 'SYSTEM');
+    // Add extra safety checks for file system operations
+    if (!FileSystem.documentDirectory) {
+      console.warn('FileSystem.documentDirectory not available, logging disabled');
+      return;
+    }
+
+    // Add timeout to prevent hanging on file operations
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Logger initialization timeout')), 3000)
+    );
+
+    await Promise.race([
+      (async () => {
+        await ensureLogsDirectoryExists();
+        await cleanupOldLogs();
+        
+        // Log app startup
+        await log('Logger initialized', LOG_LEVELS.INFO, 'SYSTEM');
+      })(),
+      timeoutPromise
+    ]);
   } catch (error) {
     console.error('Failed to initialize logger:', error);
+    // Don't throw - let the app continue without logging
   }
 }
 
@@ -35,9 +52,14 @@ export async function initializeLogger() {
  * Ensure the logs directory exists
  */
 async function ensureLogsDirectoryExists() {
-  const dirInfo = await FileSystem.getInfoAsync(LOGS_DIR);
-  if (!dirInfo.exists) {
-    await FileSystem.makeDirectoryAsync(LOGS_DIR, { intermediates: true });
+  try {
+    const dirInfo = await FileSystem.getInfoAsync(LOGS_DIR);
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(LOGS_DIR, { intermediates: true });
+    }
+  } catch (error) {
+    console.warn('Failed to create logs directory:', error);
+    throw error; // Re-throw to handle in caller
   }
 }
 
@@ -50,6 +72,21 @@ async function ensureLogsDirectoryExists() {
  */
 export async function log(message, level = LOG_LEVELS.INFO, component = 'APP', data = null) {
   try {
+    // If FileSystem is not available, just console log
+    if (!FileSystem.documentDirectory) {
+      if (__DEV__) {
+        const consoleMethod = {
+          [LOG_LEVELS.DEBUG]: console.debug,
+          [LOG_LEVELS.INFO]: console.info,
+          [LOG_LEVELS.WARN]: console.warn,
+          [LOG_LEVELS.ERROR]: console.error,
+        }[level] || console.log;
+
+        consoleMethod(`[${component}] ${message}`, data || '');
+      }
+      return;
+    }
+
     const timestamp = new Date().toISOString();
     const logEntry = {
       timestamp,
@@ -61,16 +98,36 @@ export async function log(message, level = LOG_LEVELS.INFO, component = 'APP', d
 
     const logLine = `${timestamp} [${level}] [${component}] ${message}${data ? ` | Data: ${JSON.stringify(data)}` : ''}\n`;
 
-    // Check if log file is getting too large
-    const fileInfo = await FileSystem.getInfoAsync(LOG_FILE);
-    if (fileInfo.exists && fileInfo.size > MAX_LOG_SIZE) {
-      await rotateLogs();
-    }
+    // Check if log file is getting too large (with timeout)
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('File operation timeout')), 1000)
+    );
 
-    // Append to log file
-    await FileSystem.writeAsStringAsync(LOG_FILE, logLine, {
-      append: true,
-    });
+    try {
+      const fileInfo = await Promise.race([
+        FileSystem.getInfoAsync(LOG_FILE),
+        timeoutPromise
+      ]);
+      
+      if (fileInfo.exists && fileInfo.size > MAX_LOG_SIZE) {
+        await Promise.race([
+          rotateLogs(),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Log rotation timeout')), 2000)
+          )
+        ]);
+      }
+
+      // Append to log file (with timeout)
+      await Promise.race([
+        FileSystem.writeAsStringAsync(LOG_FILE, logLine, { append: true }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Write timeout')), 1000)
+        )
+      ]);
+    } catch (fileError) {
+      console.warn('File logging failed, using console only:', fileError);
+    }
 
     // Also log to console in development
     if (__DEV__) {
@@ -317,4 +374,25 @@ function formatFileSize(bytes) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
+ * Schedule automatic log cleanup every 2 days
+ */
+export async function scheduleLogCleanup() {
+  try {
+    const CLEANUP_INTERVAL = 2 * 24 * 60 * 60 * 1000; // 2 days in milliseconds
+    
+    setInterval(async () => {
+      try {
+        await cleanupOldLogs();
+        await logger.info('Automatic log cleanup completed', 'SYSTEM');
+      } catch (error) {
+        console.error('Failed to cleanup logs automatically:', error);
+      }
+    }, CLEANUP_INTERVAL);
+  } catch (error) {
+    console.error('Failed to schedule log cleanup:', error);
+    // Don't throw - let the app continue
+  }
 }
