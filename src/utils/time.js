@@ -16,9 +16,11 @@ export function isNightTime(time, nightStart = '18:00', nightEnd = '06:00') {
 
   // Handle case where night hours span midnight
   if (startMinutes > endMinutes) {
-    return timeMinutes >= startMinutes || timeMinutes <= endMinutes;
+    // Night period is from start time until midnight and from 00:00 until end time
+    return timeMinutes >= startMinutes || timeMinutes < endMinutes;
   } else {
-    return timeMinutes >= startMinutes && timeMinutes <= endMinutes;
+    // Night period does not span midnight
+    return timeMinutes >= startMinutes && timeMinutes < endMinutes;
   }
 }
 
